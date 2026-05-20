@@ -3,12 +3,38 @@
 import { useCallback } from "react"
 import { useSN } from "./sn-context"
 
-const BLE_SERVICE_UUID = "0000180a-0000-1000-8000-00805f9b34fb"
-const BLE_CHAR_UUID_SN = "00002a25-0000-1000-8000-00805f9b34fb"
-const CUSTOM_SERVICE_UUID = "12345678-1234-1234-1234-123456789abc"
-const CUSTOM_CHAR_UUID_SN = "87654321-4321-4321-4321-cba987654321"
+// Common service UUIDs that might contain device identification info
+const COMMON_SN_SERVICES = [
+  "0000180a-0000-1000-8000-00805f9b34fb", // Device Information
+  "00001800-0000-1000-8000-00805f9b34fb", // Generic Access (device name)
+]
+
+const COMMON_SN_CHARS = [
+  "00002a25-0000-1000-8000-00805f9b34fb", // Serial Number String (standard)
+  "00002a24-0000-1000-8000-00805f9b34fb", // Model Number String
+  "00002a29-0000-1000-8000-00805f9b34fb", // Manufacturer Name String
+  "00002a00-0000-1000-8000-00805f9b34fb", // Device Name
+]
 
 const SN_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,63}$/
+
+function tryDecodeSN(value: DataView): string | null {
+  // Prefer UTF-8
+  try {
+    const decoded = new TextDecoder("utf-8").decode(value)
+    const trimmed = decoded.replace(/\0/g, "").trim()
+    if (trimmed && SN_REGEX.test(trimmed)) return trimmed
+  } catch {}
+
+  // Fallback to ASCII
+  try {
+    const decoded = new TextDecoder("ascii").decode(value)
+    const trimmed = decoded.replace(/\0/g, "").trim()
+    if (trimmed && SN_REGEX.test(trimmed)) return trimmed
+  } catch {}
+
+  return null
+}
 
 export function useBle() {
   const { setDeviceSN, setIsConnected } = useSN()
@@ -18,55 +44,93 @@ export function useBle() {
       throw new Error("此浏览器不支持 Web Bluetooth API。请使用 Chrome 或 Edge。")
     }
 
+    let device: BluetoothDevice
+
     try {
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: [BLE_SERVICE_UUID] },
-          { services: [CUSTOM_SERVICE_UUID] },
-        ],
-        optionalServices: [BLE_SERVICE_UUID, CUSTOM_SERVICE_UUID],
-        acceptAllDevices: false,
+      // Step 1: scan all nearby BLE devices (no UUID filter)
+      device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ["00001800-0000-1000-8000-00805f9b34fb", "0000180a-0000-1000-8000-00805f9b34fb"],
       })
-
-      const server = await device.gatt.connect()
-      let sn: string | null = null
-
-      try {
-        const service = await server.getPrimaryService(BLE_SERVICE_UUID)
-        const char = await service.getCharacteristic(BLE_CHAR_UUID_SN)
-        const value = await char.readValue()
-        sn = new TextDecoder().decode(value)
-      } catch {
-        try {
-          const service = await server.getPrimaryService(CUSTOM_SERVICE_UUID)
-          const char = await service.getCharacteristic(CUSTOM_CHAR_UUID_SN)
-          const value = await char.readValue()
-          sn = new TextDecoder().decode(value)
-        } catch {
-          throw new Error("无法从设备读取 SN。请确认设备支持的 GATT 服务。")
-        }
-      }
-
-      if (!sn || !SN_REGEX.test(sn.trim())) {
-        throw new Error(`无效的设备 SN: ${sn}`)
-      }
-
-      const trimmed = sn.trim()
-      setDeviceSN(trimmed)
-      setIsConnected(true)
-
-      device.addEventListener("gattserverdisconnected", () => {
-        setIsConnected(false)
-      })
-
-      return trimmed
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes("User cancelled")) {
         throw new Error("用户取消了蓝牙配对")
       }
       throw err
     }
+
+    try {
+      const server = await device.gatt?.connect()
+      if (!server) throw new Error("无法连接设备 GATT 服务")
+
+      // Step 2: try known SN characteristics first
+      for (const svcUuid of COMMON_SN_SERVICES) {
+        try {
+          const service = await server.getPrimaryService(svcUuid)
+          for (const charUuid of COMMON_SN_CHARS) {
+            try {
+              const char = await service.getCharacteristic(charUuid)
+              const value = await char.readValue()
+              const sn = tryDecodeSN(value)
+              if (sn) {
+                return finalizeConnection(device, sn)
+              }
+            } catch {}
+          }
+        } catch {}
+      }
+
+      // Step 3: iterate ALL services and characteristics as last resort
+      const services = await server.getPrimaryServices()
+      for (const service of services) {
+        try {
+          const chars = await service.getCharacteristics()
+          for (const char of chars) {
+            try {
+              if (!char.properties.read) continue
+              const value = await char.readValue()
+              // Only try small values (SNs are short strings)
+              if (value.byteLength > 128) continue
+              const sn = tryDecodeSN(value)
+              if (sn) {
+                return finalizeConnection(device, sn)
+              }
+            } catch {}
+          }
+        } catch {}
+      }
+
+      // Step 4: try device name as fallback
+      if (device.name && SN_REGEX.test(device.name.trim())) {
+        return finalizeConnection(device, device.name.trim())
+      }
+
+      throw new Error(
+        "已连接设备但无法读取 SN。\n\n" +
+        "请确认：\n" +
+        "1. MCU 设备正在广播 BLE 信号\n" +
+        "2. MCU 的 GATT 服务中包含可读的 SN 特征值\n\n" +
+        "建议使用 nRF Connect App 扫描设备，查看实际的 Service/Characteristic UUID。"
+      )
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.startsWith("已连接设备")) {
+        throw err
+      }
+      throw new Error(`连接 MCU 失败: ${err instanceof Error ? err.message : "未知错误"}`)
+    }
   }, [setDeviceSN, setIsConnected])
+
+  function finalizeConnection(device: BluetoothDevice, sn: string) {
+    const trimmed = sn.trim()
+    setDeviceSN(trimmed)
+    setIsConnected(true)
+
+    device.addEventListener("gattserverdisconnected", () => {
+      setIsConnected(false)
+    })
+
+    return trimmed
+  }
 
   return { connect }
 }
