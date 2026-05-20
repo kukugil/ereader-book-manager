@@ -1,0 +1,9 @@
+node_modules/
+storage/
+*.tmp
+.env
+.env.local
+.next/
+frontend/.next/
+frontend/out/
+.turbo/
