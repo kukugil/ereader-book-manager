@@ -52,6 +52,9 @@ app.use('/dl', (req, res, next) => {
 app.use('/api/v1', uploadRoutes);
 app.use('/api/v1', deviceRoutes);
 
+// Health check for Render
+app.get('/health', (_req, res) => res.status(200).json({ ok: true }));
+
 // Serve web frontend
 const frontendOut = path.join(__dirname, '..', 'frontend', 'out');
 const publicDir = path.join(__dirname, '..', 'public');

@@ -5,6 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
     "dev": "node --watch server/index.js"
   },
   "dependencies": {
