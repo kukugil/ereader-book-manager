@@ -5,5 +5,4 @@ storage/
 .env.local
 .next/
 frontend/.next/
-frontend/out/
 .turbo/
