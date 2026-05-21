@@ -83,7 +83,7 @@ export function Header() {
                 focus:border-accent focus:outline-none w-36 text-sm"
               placeholder="输入设备序列号"
             />
-            {bleAvailable && (
+            {bleAvailable ? (
               <button
                 onClick={handleConnect}
                 disabled={connecting}
@@ -94,6 +94,14 @@ export function Header() {
                   }`}
               >
                 {connecting ? "连接中..." : isConnected ? "已连接" : "BLE连接"}
+              </button>
+            ) : (
+              <button
+                disabled
+                title="当前浏览器不支持 Web Bluetooth，请使用 Chrome/Edge 或手动输入 SN"
+                className="px-4 py-2 text-sm tracking-wider pixel-button bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+              >
+                不支持BLE
               </button>
             )}
           </div>
