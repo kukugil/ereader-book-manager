@@ -1,21 +1,28 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSN } from "@/hooks/sn-context"
 import { useBle } from "@/hooks/use-ble"
+import { QrScanner } from "./qr-scanner"
 
 export function Header() {
   const { deviceSN, setDeviceSN, isConnected, isValidSN } = useSN()
-  const { connect } = useBle()
+  const { connect, autoConnect } = useBle()
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState("")
   const [bleAvailable, setBleAvailable] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
 
   useEffect(() => {
     setBleAvailable(typeof navigator !== "undefined" && !!navigator.bluetooth)
   }, [])
 
-  const handleConnect = async () => {
+  useEffect(() => {
+    if (!bleAvailable) return
+    autoConnect().catch(() => {})
+  }, [bleAvailable, autoConnect])
+
+  const handleConnect = useCallback(async () => {
     setError("")
     setConnecting(true)
     try {
@@ -25,7 +32,12 @@ export function Header() {
     } finally {
       setConnecting(false)
     }
-  }
+  }, [connect])
+
+  const handleScan = useCallback((sn: string) => {
+    setDeviceSN(sn)
+    setShowScanner(false)
+  }, [setDeviceSN])
 
   return (
     <header className="mb-4 sm:mb-8">
@@ -47,7 +59,6 @@ export function Header() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         {/* Title with pixel art style */}
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Pixel book icon */}
           <div className="w-9 h-9 sm:w-12 sm:h-12 bg-card border-2 border-primary flex items-center justify-center flex-shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-primary sm:w-6 sm:h-6">
               <rect x="4" y="2" width="14" height="20" fill="currentColor" opacity="0.3"/>
@@ -73,18 +84,34 @@ export function Header() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
           <div className="flex items-center gap-2 w-full">
             <span className="text-muted-foreground text-xs sm:text-sm flex-shrink-0 hidden sm:inline">设备 SN:</span>
-            <input
-              type="text"
-              value={deviceSN}
-              onChange={(e) => setDeviceSN(e.target.value)}
-              className={`bg-input border-2 px-2.5 py-2.5 sm:py-2 text-foreground
-                focus:outline-none flex-1 sm:w-36 text-sm
-                ${deviceSN && !isValidSN
-                  ? "border-destructive focus:border-destructive"
-                  : "border-secondary focus:border-accent"
-                }`}
-              placeholder="输入设备序列号"
-            />
+            <div className="flex items-center gap-1 flex-1 sm:flex-initial">
+              <input
+                type="text"
+                value={deviceSN}
+                onChange={(e) => setDeviceSN(e.target.value)}
+                className={`bg-input border-2 px-2.5 py-2.5 sm:py-2 text-foreground
+                  focus:outline-none flex-1 sm:w-36 text-sm
+                  ${deviceSN && !isValidSN
+                    ? "border-destructive focus:border-destructive"
+                    : "border-secondary focus:border-accent"
+                  }`}
+                placeholder="输入设备序列号"
+              />
+              <button
+                onClick={() => setShowScanner(true)}
+                title="扫描 SN 二维码"
+                className="px-2 py-2.5 sm:py-2 bg-card border-2 border-secondary hover:border-accent flex-shrink-0"
+                aria-label="扫描二维码"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-foreground">
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                  <line x1="14" y1="14" x2="21" y2="21" />
+                  <line x1="21" y1="17" x2="17" y2="21" />
+                </svg>
+              </button>
+            </div>
             {bleAvailable ? (
               <button
                 onClick={handleConnect}
@@ -132,6 +159,13 @@ export function Header() {
         </div>
         <div className="flex-1 h-px bg-secondary" />
       </div>
+
+      {showScanner && (
+        <QrScanner
+          onScan={handleScan}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </header>
   )
 }
