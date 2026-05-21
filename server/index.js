@@ -52,11 +52,12 @@ app.use('/dl', (req, res, next) => {
 app.use('/api/v1', uploadRoutes);
 app.use('/api/v1', deviceRoutes);
 
-// Serve web frontend
+// Serve web frontend — prefer the Next.js static export (pixel-art version)
 const frontendOut = path.join(__dirname, '..', 'frontend', 'out');
 const publicDir = path.join(__dirname, '..', 'public');
-const staticDir = fs.existsSync(frontendOut) ? frontendOut : publicDir;
-console.log(`Static serving from: ${staticDir} (frontend/out exists: ${fs.existsSync(frontendOut)})`);
+const frontendReady = fs.existsSync(path.join(frontendOut, 'index.html'));
+const staticDir = frontendReady ? frontendOut : publicDir;
+console.log(`Static serving from: ${staticDir} (frontend/out/index.html: ${frontendReady})`);
 
 app.use(express.static(staticDir));
 
@@ -65,7 +66,7 @@ app.get('/health', (_req, res) => {
   res.status(200).json({
     ok: true,
     serving: path.basename(staticDir),
-    buildExists: fs.existsSync(frontendOut),
+    frontendReady,
   });
 });
 
