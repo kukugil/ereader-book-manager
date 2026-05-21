@@ -52,14 +52,22 @@ app.use('/dl', (req, res, next) => {
 app.use('/api/v1', uploadRoutes);
 app.use('/api/v1', deviceRoutes);
 
-// Health check for Render
-app.get('/health', (_req, res) => res.status(200).json({ ok: true }));
-
 // Serve web frontend
 const frontendOut = path.join(__dirname, '..', 'frontend', 'out');
 const publicDir = path.join(__dirname, '..', 'public');
 const staticDir = fs.existsSync(frontendOut) ? frontendOut : publicDir;
+console.log(`Static serving from: ${staticDir} (frontend/out exists: ${fs.existsSync(frontendOut)})`);
+
 app.use(express.static(staticDir));
+
+// Health check for Render (also reports build status)
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    serving: path.basename(staticDir),
+    buildExists: fs.existsSync(frontendOut),
+  });
+});
 
 // SPA fallback
 app.get('*', (_req, res) => {
