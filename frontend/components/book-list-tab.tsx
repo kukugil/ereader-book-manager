@@ -59,9 +59,9 @@ function SortableBook({ book, onDelete }: { book: Book; onDelete: (id: string) =
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 hover:bg-secondary/50 flex-shrink-0"
+          className="cursor-grab active:cursor-grabbing p-2 sm:p-1 hover:bg-secondary/50 flex-shrink-0 touch-none"
         >
-          <svg width="12" height="20" viewBox="0 0 12 20" className="text-muted-foreground">
+          <svg width="14" height="20" viewBox="0 0 12 20" className="text-muted-foreground sm:w-3">
             <rect x="2" y="2" width="2" height="2" fill="currentColor"/>
             <rect x="8" y="2" width="2" height="2" fill="currentColor"/>
             <rect x="2" y="6" width="2" height="2" fill="currentColor"/>
@@ -97,7 +97,7 @@ function SortableBook({ book, onDelete }: { book: Book; onDelete: (id: string) =
           <div className="flex gap-2 mt-2 sm:hidden">
             <button
               onClick={() => onDelete(book.id)}
-              className="px-3 py-1.5 bg-destructive text-destructive-foreground text-xs hover:bg-destructive/80 pixel-button"
+              className="px-4 py-2 bg-destructive text-destructive-foreground text-sm hover:bg-destructive/80 pixel-button"
             >
               删除
             </button>
@@ -206,21 +206,21 @@ export function BookListTab({ refreshKey }: BookListTabProps) {
 
   if (!deviceSN) {
     return (
-      <div className="text-center py-16 border-2 border-dashed border-secondary">
-        <p className="text-muted-foreground">请先输入设备 SN</p>
+      <div className="text-center py-12 sm:py-16 border-2 border-dashed border-secondary">
+        <p className="text-muted-foreground text-sm sm:text-base">请先输入设备 SN</p>
       </div>
     )
   }
 
   if (loading) {
     return (
-      <div className="text-center py-16 border-2 border-dashed border-secondary">
-        <div className="flex justify-center gap-2 mb-4">
+      <div className="text-center py-12 sm:py-16 border-2 border-dashed border-secondary">
+        <div className="flex justify-center gap-2 mb-3 sm:mb-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="w-3 h-3 bg-accent animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
           ))}
         </div>
-        <p className="text-muted-foreground">加载中...</p>
+        <p className="text-muted-foreground text-sm sm:text-base">加载中...</p>
       </div>
     )
   }
@@ -234,10 +234,10 @@ export function BookListTab({ refreshKey }: BookListTabProps) {
       )}
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
+      <div className="flex gap-2 sm:gap-3">
         <button
           onClick={handleRefresh}
-          className="px-4 py-2 bg-secondary text-foreground text-sm hover:bg-secondary/70 pixel-button flex items-center gap-2"
+          className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 bg-secondary text-foreground text-sm hover:bg-secondary/70 pixel-button flex items-center justify-center gap-2"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" className="text-current">
             <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
@@ -259,7 +259,7 @@ export function BookListTab({ refreshKey }: BookListTabProps) {
           onClick={handleSave}
           disabled={!hasChanges}
           className={`
-            px-4 py-2 text-sm pixel-button flex items-center gap-2
+            flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 text-sm pixel-button flex items-center justify-center gap-2
             ${hasChanges
               ? "bg-accent text-accent-foreground hover:bg-accent/80"
               : "bg-muted text-muted-foreground cursor-not-allowed"
@@ -291,22 +291,22 @@ export function BookListTab({ refreshKey }: BookListTabProps) {
           </SortableContext>
         </DndContext>
       ) : (
-        <div className="text-center py-16 border-2 border-dashed border-secondary">
-          <svg width="48" height="48" viewBox="0 0 48 48" className="mx-auto mb-4 text-muted-foreground">
+        <div className="text-center py-12 sm:py-16 border-2 border-dashed border-secondary">
+          <svg width="40" height="40" viewBox="0 0 48 48" className="mx-auto mb-3 sm:mb-4 text-muted-foreground sm:w-12 sm:h-12">
             <rect x="8" y="4" width="32" height="40" fill="none" stroke="currentColor" strokeWidth="2"/>
             <rect x="16" y="12" width="16" height="2" fill="currentColor"/>
             <rect x="16" y="18" width="12" height="2" fill="currentColor"/>
             <rect x="16" y="24" width="16" height="2" fill="currentColor"/>
           </svg>
-          <p className="text-muted-foreground">暂无书籍</p>
+          <p className="text-muted-foreground text-sm sm:text-base">暂无书籍</p>
         </div>
       )}
 
       {/* Stats */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground border-t border-secondary pt-4">
+      <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground border-t border-secondary pt-3 sm:pt-4">
         <span>共 {books.length} 本书籍</span>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-accent" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-accent" />
           <span>拖拽可排序</span>
         </div>
       </div>

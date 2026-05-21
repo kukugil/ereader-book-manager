@@ -46,41 +46,39 @@ export function Header() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Title with pixel art style */}
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            {/* Pixel book icon */}
-            <div className="w-12 h-12 bg-card border-2 border-primary flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-primary">
-                <rect x="4" y="2" width="14" height="20" fill="currentColor" opacity="0.3"/>
-                <rect x="4" y="2" width="2" height="20" fill="currentColor"/>
-                <rect x="4" y="2" width="14" height="2" fill="currentColor"/>
-                <rect x="4" y="20" width="14" height="2" fill="currentColor"/>
-                <rect x="16" y="2" width="2" height="20" fill="currentColor"/>
-                <rect x="8" y="6" width="6" height="2" fill="currentColor"/>
-                <rect x="8" y="10" width="4" height="2" fill="currentColor"/>
-              </svg>
-            </div>
+        <div className="flex items-center gap-3 sm:gap-4">
+          {/* Pixel book icon */}
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-card border-2 border-primary flex items-center justify-center flex-shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-primary sm:w-6 sm:h-6">
+              <rect x="4" y="2" width="14" height="20" fill="currentColor" opacity="0.3"/>
+              <rect x="4" y="2" width="2" height="20" fill="currentColor"/>
+              <rect x="4" y="2" width="14" height="2" fill="currentColor"/>
+              <rect x="4" y="20" width="14" height="2" fill="currentColor"/>
+              <rect x="16" y="2" width="2" height="20" fill="currentColor"/>
+              <rect x="8" y="6" width="6" height="2" fill="currentColor"/>
+              <rect x="8" y="10" width="4" height="2" fill="currentColor"/>
+            </svg>
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-wider retro-glow text-primary">
+            <h1 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-wider retro-glow text-primary leading-tight">
               电子阅读器书籍管理
             </h1>
-            <p className="text-muted-foreground text-sm tracking-widest">
+            <p className="text-muted-foreground text-xs sm:text-sm tracking-widest">
               E-READER BOOK MANAGER
             </p>
           </div>
         </div>
 
         {/* Device Connection */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <span className="text-muted-foreground text-sm">设备 SN:</span>
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 w-full md:w-auto">
+          <span className="text-muted-foreground text-xs sm:text-sm flex-shrink-0">设备 SN:</span>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <input
               type="text"
               value={deviceSN}
               onChange={(e) => setDeviceSN(e.target.value)}
               className="bg-input border-2 border-secondary px-3 py-2 text-foreground
-                focus:border-accent focus:outline-none w-36 text-sm"
+                focus:border-accent focus:outline-none flex-1 sm:w-36 text-sm"
               placeholder="输入设备序列号"
             />
             {bleAvailable ? (
@@ -106,9 +104,9 @@ export function Header() {
             )}
           </div>
           {isConnected && (
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-success animate-pulse" />
-              <span className="text-sm text-success">{deviceSN}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 ml-1">
+              <div className="w-2 h-2 bg-success animate-pulse flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-success truncate max-w-[120px] sm:max-w-none">{deviceSN}</span>
             </div>
           )}
         </div>

@@ -41,16 +41,21 @@ export function useBle() {
 
   const connect = useCallback(async () => {
     if (!navigator.bluetooth) {
-      throw new Error("此浏览器不支持 Web Bluetooth API。请使用 Chrome 或 Edge。")
+      throw new Error(
+        "此浏览器不支持蓝牙。\n" +
+        "• Android: 请使用 Chrome 浏览器\n" +
+        "• iPhone: Safari 不支持蓝牙，请手动输入设备 SN\n" +
+        "• PC: 请使用 Chrome 或 Edge"
+      )
     }
 
     let device: BluetoothDevice
 
     try {
       // Step 1: scan all nearby BLE devices (no UUID filter)
+      // Android Chrome requires Location Services to be enabled for BLE scanning
       device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
-        optionalServices: ["00001800-0000-1000-8000-00805f9b34fb", "0000180a-0000-1000-8000-00805f9b34fb"],
       })
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes("User cancelled")) {
@@ -107,10 +112,10 @@ export function useBle() {
 
       throw new Error(
         "已连接设备但无法读取 SN。\n\n" +
-        "请确认：\n" +
-        "1. MCU 设备正在广播 BLE 信号\n" +
-        "2. MCU 的 GATT 服务中包含可读的 SN 特征值\n\n" +
-        "建议使用 nRF Connect App 扫描设备，查看实际的 Service/Characteristic UUID。"
+        "Android 用户请注意：\n" +
+        "• 确保手机已开启「位置信息」\n" +
+        "• 确保 MCU 已上电且蓝牙在广播\n\n" +
+        "如仍无法读取，建议用 nRF Connect App 扫描设备，查看实际的 GATT 服务 UUID。"
       )
     } catch (err: unknown) {
       if (err instanceof Error && err.message.startsWith("已连接设备")) {

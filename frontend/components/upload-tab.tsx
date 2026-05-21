@@ -113,7 +113,7 @@ export function UploadTab({ onUploadComplete }: UploadTabProps) {
   return (
     <div className="space-y-6">
       {!deviceSN && (
-        <div className="px-4 py-3 bg-secondary/30 border border-secondary text-muted-foreground text-sm">
+        <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-secondary/30 border border-secondary text-muted-foreground text-xs sm:text-sm">
           请先在顶部输入设备 SN 或通过 BLE 连接设备
         </div>
       )}
@@ -122,7 +122,7 @@ export function UploadTab({ onUploadComplete }: UploadTabProps) {
       <div
         {...getRootProps()}
         className={`
-          border-2 border-dashed p-12 text-center cursor-pointer
+          border-2 border-dashed p-6 sm:p-12 text-center cursor-pointer
           transition-all duration-200 relative
           ${!deviceSN ? "opacity-50 cursor-not-allowed" : ""}
           ${isDragActive
@@ -134,9 +134,9 @@ export function UploadTab({ onUploadComplete }: UploadTabProps) {
         <input {...getInputProps()} />
 
         {/* Pixel Upload Icon */}
-        <div className="mb-6 flex justify-center">
+        <div className="mb-4 sm:mb-6 flex justify-center">
           <div className="relative">
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="text-primary">
+            <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="text-primary sm:w-16 sm:h-16">
               {/* Arrow body */}
               <rect x="28" y="24" width="8" height="24" fill="currentColor"/>
               {/* Arrow head */}
@@ -154,10 +154,10 @@ export function UploadTab({ onUploadComplete }: UploadTabProps) {
           </div>
         </div>
 
-        <p className="text-xl text-primary mb-2 tracking-wide">
+        <p className="text-base sm:text-xl text-primary mb-2 tracking-wide">
           {isDragActive ? "松开以上传文件" : "拖拽文件到此处，或点击选择"}
         </p>
-        <p className="text-muted-foreground text-sm tracking-wider">
+        <p className="text-muted-foreground text-xs sm:text-sm tracking-wider">
           支持 EPUB / PDF / TXT，单文件最大 500MB
         </p>
 
@@ -227,7 +227,7 @@ export function UploadTab({ onUploadComplete }: UploadTabProps) {
             <div
               key={file.id}
               className={`
-                border-l-4 px-4 py-3 bg-card flex items-center justify-between
+                border-l-4 px-3 sm:px-4 py-2.5 sm:py-3 bg-card flex items-center justify-between gap-2
                 ${file.status === "success"
                   ? "border-success"
                   : file.status === "error"
@@ -236,7 +236,7 @@ export function UploadTab({ onUploadComplete }: UploadTabProps) {
                 }
               `}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 {file.status === "uploading" && (
                   <div className="flex gap-1">
                     {[...Array(3)].map((_, i) => (
@@ -258,7 +258,7 @@ export function UploadTab({ onUploadComplete }: UploadTabProps) {
                     <rect x="12" y="2" width="2" height="2" fill="currentColor"/>
                   </svg>
                 )}
-                <span className="text-foreground">
+                <span className="text-foreground text-sm truncate">
                   {file.name} — {file.status === "success" ? "上传成功" : file.status === "error" ? `上传失败: ${file.error}` : "上传中..."}
                 </span>
               </div>
