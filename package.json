@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "build": "npm --prefix frontend install && cd frontend && rm -rf out && npx next build",
+    "build": "npm --prefix frontend install && cd frontend && rm -rf out && npx next build && rm -rf ../public/* && cp -r out/* ../public/",
     "dev": "node --watch server/index.js"
   },
   "dependencies": {

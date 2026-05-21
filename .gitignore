@@ -6,3 +6,4 @@ storage/
 .next/
 frontend/.next/
 .turbo/
+frontend/out/

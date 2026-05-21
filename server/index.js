@@ -52,21 +52,18 @@ app.use('/dl', (req, res, next) => {
 app.use('/api/v1', uploadRoutes);
 app.use('/api/v1', deviceRoutes);
 
-// Serve web frontend — prefer the Next.js static export (pixel-art version)
-const frontendOut = path.join(__dirname, '..', 'frontend', 'out');
-const publicDir = path.join(__dirname, '..', 'public');
-const frontendReady = fs.existsSync(path.join(frontendOut, 'index.html'));
-const staticDir = frontendReady ? frontendOut : publicDir;
-console.log(`Static serving from: ${staticDir} (frontend/out/index.html: ${frontendReady})`);
+// Serve web frontend from public/ (Next.js static export)
+const staticDir = path.join(__dirname, '..', 'public');
+console.log(`Static serving from: ${staticDir}`);
 
 app.use(express.static(staticDir));
 
-// Health check for Render (also reports build status)
+// Health check for Render
 app.get('/health', (_req, res) => {
   res.status(200).json({
     ok: true,
-    serving: path.basename(staticDir),
-    frontendReady,
+    serving: 'public',
+    frontendReady: true,
   });
 });
 
