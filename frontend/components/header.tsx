@@ -5,7 +5,7 @@ import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 
 export function Header() {
-  const { deviceSN, setDeviceSN, isValidSN } = useSN()
+  const { deviceSN, setDeviceSN, isValidSN, isConnected } = useSN()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -59,10 +59,10 @@ export function Header() {
             {/* Status indicator */}
             <div className="flex items-center gap-2 bg-card border border-border rounded-l-lg px-2 sm:px-3 py-2 whitespace-nowrap">
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                isValidSN ? 'bg-success animate-pulse' : 'bg-muted-foreground'
+                isConnected ? 'bg-success animate-pulse' : 'bg-muted-foreground'
               }`} />
               <span className="text-xs sm:text-sm text-muted-foreground">
-                {isValidSN ? '已连接' : '未连接'}
+                {isConnected ? '已连接' : '未连接'}
               </span>
             </div>
             {/* SN Input */}
