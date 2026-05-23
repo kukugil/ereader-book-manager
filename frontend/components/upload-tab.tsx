@@ -174,15 +174,20 @@ export function UploadTab({ onUploadComplete }: UploadTabProps) {
 
       {/* Global progress bar */}
       {uploadedFiles.some(f => f.status === "uploading") && totalSize > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
             <span>上传进度</span>
             <span>{totalProgress}% ({formatSize(totalSize)})</span>
           </div>
-          <div className="w-full h-2 bg-secondary">
+          <div className="w-full h-2.5 bg-secondary rounded overflow-hidden">
             <div
-              className="h-full bg-accent transition-all duration-300"
-              style={{ width: `${totalProgress}%` }}
+              className="h-full rounded transition-all duration-300"
+              style={{
+                width: `${totalProgress}%`,
+                background: `repeating-linear-gradient(-45deg, var(--color-accent) 0px, var(--color-accent) 6px, rgba(196,106,62,0.3) 6px, rgba(196,106,62,0.3) 12px)`,
+                animation: totalProgress < 100 ? 'progress-stripes 1s linear infinite' : 'none',
+                backgroundSize: '12px 12px',
+              }}
             />
           </div>
         </div>
@@ -231,12 +236,12 @@ export function UploadTab({ onUploadComplete }: UploadTabProps) {
             <div
               key={file.id}
               className={`
-                border-l-4 px-3 sm:px-4 py-2 sm:py-3 bg-card flex items-center gap-2
+                border-l-4 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 rounded-r
                 ${file.status === "success"
-                  ? "border-success"
+                  ? "border-success bg-success/5"
                   : file.status === "error"
-                    ? "border-destructive"
-                    : "border-accent"
+                    ? "border-destructive bg-destructive/5"
+                    : "border-accent bg-accent/5"
                 }
               `}
             >

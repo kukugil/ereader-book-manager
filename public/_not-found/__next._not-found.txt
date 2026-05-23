@@ -1,5 +1,5 @@
 1:"$Sreact.fragment"
-2:I[32035,["/_next/static/chunks/09ecemc4uxphz.js","/_next/static/chunks/000ce62-8w~jc.js"],"default"]
-3:I[91168,["/_next/static/chunks/09ecemc4uxphz.js","/_next/static/chunks/000ce62-8w~jc.js"],"default"]
+2:I[32035,["/_next/static/chunks/0lov92_cyf2xp.js","/_next/static/chunks/000ce62-8w~jc.js"],"default"]
+3:I[91168,["/_next/static/chunks/0lov92_cyf2xp.js","/_next/static/chunks/000ce62-8w~jc.js"],"default"]
 4:[]
-0:{"rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"isPartial":false,"staleTime":300,"varyParams":"$W4","buildId":"xrc9bZ0iSjmF4if-Norc4"}
+0:{"rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"isPartial":false,"staleTime":300,"varyParams":"$W4","buildId":"zaX_3oh2TvPzm4QeKE34L"}

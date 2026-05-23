@@ -27,6 +27,15 @@ interface Book {
   author: string
   type: string
   size: string
+  coverUrl: string
+}
+
+function formatBadge(format: string): string {
+  const b = format.toUpperCase()
+  if (b === 'EPUB') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+  if (b === 'PDF') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+  if (b === 'TXT') return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+  return 'bg-secondary text-muted-foreground'
 }
 
 function SortableBook({ book, onDelete }: { book: Book; onDelete: (id: string) => void }) {
@@ -49,9 +58,9 @@ function SortableBook({ book, onDelete }: { book: Book; onDelete: (id: string) =
       ref={setNodeRef}
       style={style}
       className={`
-        bg-card border-2 border-secondary p-2.5 sm:p-4
+        bg-card border border-border p-2.5 sm:p-4 rounded-lg
         transition-colors hover:border-accent/50
-        ${isDragging ? "opacity-50 border-accent" : ""}
+        ${isDragging ? "opacity-50 border-accent shadow-sm" : ""}
       `}
     >
       <div className="flex items-center gap-2 sm:gap-4">
@@ -59,7 +68,7 @@ function SortableBook({ book, onDelete }: { book: Book; onDelete: (id: string) =
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing p-2 sm:p-1 hover:bg-secondary/50 flex-shrink-0 touch-none"
+          className="cursor-grab active:cursor-grabbing p-2 sm:p-1 hover:bg-secondary/50 rounded flex-shrink-0 touch-none"
         >
           <svg width="12" height="18" viewBox="0 0 12 20" className="text-muted-foreground sm:w-3">
             <rect x="2" y="2" width="2" height="2" fill="currentColor"/>
@@ -75,9 +84,21 @@ function SortableBook({ book, onDelete }: { book: Book; onDelete: (id: string) =
           </svg>
         </button>
 
-        {/* Book Cover Placeholder */}
-        <div className="w-9 h-12 sm:w-12 sm:h-16 bg-secondary border border-border flex items-center justify-center flex-shrink-0">
-          <svg width="16" height="16" viewBox="0 0 24 24" className="text-muted-foreground">
+        {/* Book Cover */}
+        <div className="w-10 h-14 sm:w-12 sm:h-16 bg-secondary rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {book.coverUrl ? (
+            <img
+              src={book.coverUrl}
+              alt={book.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const el = e.currentTarget
+                el.style.display = 'none'
+                el.parentElement?.classList.add('cover-fallback')
+              }}
+            />
+          ) : null}
+          <svg width="16" height="16" viewBox="0 0 24 24" className={`text-muted-foreground ${book.coverUrl ? 'hidden' : ''}`}>
             <rect x="4" y="2" width="16" height="2" fill="currentColor"/>
             <rect x="4" y="20" width="16" height="2" fill="currentColor"/>
             <rect x="4" y="2" width="2" height="20" fill="currentColor"/>
@@ -88,16 +109,25 @@ function SortableBook({ book, onDelete }: { book: Book; onDelete: (id: string) =
 
         {/* Book Info */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-foreground text-sm sm:text-lg truncate">{book.title}</h3>
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="text-foreground text-sm sm:text-base font-medium truncate">{book.title}</h3>
+            <span className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${formatBadge(book.type)}`}>
+              {book.type}
+            </span>
+          </div>
           <p className="text-muted-foreground text-xs sm:text-sm">
-            {book.author} · {book.type} · {book.size}
+            {book.author} · {book.size}
           </p>
         </div>
 
-        {/* Delete button — always visible on mobile, icons on desktop */}
+        {/* Delete button */}
         <button
-          onClick={() => onDelete(book.id)}
-          className="flex-shrink-0 px-3 py-2 sm:px-4 sm:py-2 bg-destructive text-destructive-foreground text-xs sm:text-sm hover:bg-destructive/80 pixel-button"
+          onClick={() => {
+            if (window.confirm(`确定要删除「${book.title}」吗？此操作不可恢复。`)) {
+              onDelete(book.id)
+            }
+          }}
+          className="flex-shrink-0 px-3 py-1.5 sm:px-3 sm:py-1.5 border border-destructive/40 text-destructive text-xs sm:text-sm rounded hover:bg-destructive/10 transition-colors"
         >
           <span className="sm:hidden">删</span>
           <span className="hidden sm:inline">删除</span>
@@ -114,18 +144,21 @@ function mapBook(b: BookResponse): Book {
     author: b.author || "未知作者",
     type: (b.format || "").toUpperCase(),
     size: formatSize(b.file_size),
+    coverUrl: b.cover_url || "",
   }
 }
 
 interface BookListTabProps {
   refreshKey?: number
+  onGoUpload?: () => void
 }
 
-export function BookListTab({ refreshKey }: BookListTabProps) {
+export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
   const { deviceSN, isValidSN } = useSN()
   const [books, setBooks] = useState<Book[]>([])
   const [hasChanges, setHasChanges] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState("")
 
   const sensors = useSensors(
@@ -189,8 +222,10 @@ export function BookListTab({ refreshKey }: BookListTabProps) {
     }
   }
 
-  const handleRefresh = () => {
-    loadBooks()
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadBooks()
+    setRefreshing(false)
   }
 
   if (!isValidSN) {
@@ -233,9 +268,10 @@ export function BookListTab({ refreshKey }: BookListTabProps) {
       <div className="flex gap-2 sm:gap-3">
         <button
           onClick={handleRefresh}
-          className="flex-1 sm:flex-none px-3 sm:px-4 py-3 sm:py-2 bg-secondary text-foreground text-sm hover:bg-secondary/70 pixel-button flex items-center justify-center gap-1.5 sm:gap-2"
+          disabled={refreshing}
+          className={`flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 bg-secondary text-foreground text-sm rounded hover:bg-secondary/70 transition-colors flex items-center justify-center gap-1.5 sm:gap-2 disabled:opacity-60`}
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" className="text-current sm:w-4 sm:h-4">
+          <svg width="14" height="14" viewBox="0 0 16 16" className={`text-current sm:w-4 sm:h-4 ${refreshing ? 'animate-spin' : ''}`}>
             <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
             <rect x="9" y="3" width="2" height="2" fill="currentColor"/>
             <rect x="11" y="5" width="2" height="2" fill="currentColor"/>
@@ -249,13 +285,13 @@ export function BookListTab({ refreshKey }: BookListTabProps) {
             <rect x="3" y="5" width="2" height="2" fill="currentColor"/>
             <rect x="5" y="3" width="2" height="2" fill="currentColor"/>
           </svg>
-          刷新
+          {refreshing ? '刷新中...' : '刷新'}
         </button>
         <button
           onClick={handleSave}
           disabled={!hasChanges}
           className={`
-            flex-1 sm:flex-none px-3 sm:px-4 py-3 sm:py-2 text-sm pixel-button flex items-center justify-center gap-1.5 sm:gap-2
+            flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 text-sm rounded flex items-center justify-center gap-1.5 sm:gap-2 transition-colors
             ${hasChanges
               ? "bg-accent text-accent-foreground hover:bg-accent/80"
               : "bg-muted text-muted-foreground cursor-not-allowed"
@@ -287,14 +323,23 @@ export function BookListTab({ refreshKey }: BookListTabProps) {
           </SortableContext>
         </DndContext>
       ) : (
-        <div className="text-center py-12 sm:py-16 border-2 border-dashed border-secondary">
+        <div className="text-center py-12 sm:py-16 border border-dashed border-border rounded-lg">
           <svg width="32" height="32" viewBox="0 0 48 48" className="mx-auto mb-3 sm:mb-4 text-muted-foreground sm:w-12 sm:h-12">
             <rect x="8" y="4" width="32" height="40" fill="none" stroke="currentColor" strokeWidth="2"/>
             <rect x="16" y="12" width="16" height="2" fill="currentColor"/>
             <rect x="16" y="18" width="12" height="2" fill="currentColor"/>
             <rect x="16" y="24" width="16" height="2" fill="currentColor"/>
           </svg>
-          <p className="text-muted-foreground text-sm sm:text-base">暂无书籍</p>
+          <p className="text-muted-foreground text-sm sm:text-base mb-1">暂无书籍</p>
+          <p className="text-muted-foreground text-xs mb-4">切换到「上传书籍」标签页开始添加</p>
+          {onGoUpload && (
+            <button
+              onClick={onGoUpload}
+              className="px-4 py-2 bg-primary text-primary-foreground text-sm rounded hover:bg-primary/90 transition-colors"
+            >
+              前往上传
+            </button>
+          )}
         </div>
       )}
 
