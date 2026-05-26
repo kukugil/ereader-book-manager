@@ -8,7 +8,6 @@ const { sanitizeSN } = require('./storage');
 
 const fs = require('fs');
 
-// Ensure storage root directory exists
 if (!fs.existsSync(CONFIG.STORAGE_ROOT)) {
   fs.mkdirSync(CONFIG.STORAGE_ROOT, { recursive: true });
 }
@@ -18,10 +17,10 @@ if (!fs.existsSync(CONFIG.DL_DIR)) {
 
 const app = express();
 
-// Body parsing
+app.set('etag', false);
 app.use(express.json());
 
-// Static file serving for /dl/ — device-facing read-only access
+// Static file serving for /dl/
 app.use('/dl', (req, res, next) => {
   const seg = req.path.split('/').filter(Boolean);
   if (seg.length > 0) {
@@ -45,30 +44,63 @@ app.use('/dl', (req, res, next) => {
     if (filePath.endsWith('.json')) {
       res.header('Content-Type', 'application/json; charset=utf-8');
     }
+    if (filePath.includes('/books/')) {
+      const filename = path.basename(filePath);
+      res.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    }
   },
 }));
 
-// API routes
+/**
+ * @openapi
+ * /health:
+ *   get:
+ *     tags: [System]
+ *     summary: 健康检查
+ *     responses:
+ *       200:
+ *         description: 服务正常运行
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean, example: true }
+ *                 serving: { type: string, example: 'public' }
+ *                 frontendReady: { type: boolean, example: true }
+ */
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true, serving: 'public', frontendReady: true });
+});
+
+// API routes — disable caching
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.removeHeader('ETag');
+  next();
+});
 app.use('/api/v1', uploadRoutes);
 app.use('/api/v1', deviceRoutes);
 
-// Serve web frontend from public/ (Next.js static export)
-const staticDir = path.join(__dirname, '..', 'public');
-console.log(`Static serving from: ${staticDir}`);
+// Swagger UI
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customSiteTitle: 'E-Reader API Docs' }));
+app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
 
+// Serve web frontend
+const staticDir = path.join(__dirname, '..', 'public');
 app.use(express.static(staticDir));
 
-// Health check for Render
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    ok: true,
-    serving: 'public',
-    frontendReady: true,
-  });
-});
-
-// SPA fallback
-app.get('*', (_req, res) => {
+// SPA fallback — only for page routes, not static assets
+app.get('*', (req, res) => {
+  const p = req.path;
+  if (/\.(js|css|json|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot|map|webmanifest)(\?.*)?$/.test(p)) {
+    return res.status(404).send('Not found');
+  }
+  if (p.startsWith('/_next/')) {
+    return res.status(404).send('Not found');
+  }
   const indexPath = path.join(staticDir, 'index.html');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
@@ -77,21 +109,31 @@ app.get('*', (_req, res) => {
   }
 });
 
-// Error handler
 app.use(errorHandler);
 
 const port = parseInt(process.env.PORT, 10) || 3001;
-app.listen(port, () => {
-  console.log(`E-Reader server running on http://0.0.0.0:${port}`);
-  console.log(`Storage: ${CONFIG.DL_DIR}`);
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log('E-Reader server running on http://0.0.0.0:' + port);
+  console.log('Storage:', CONFIG.DL_DIR);
 });
+server.keepAliveTimeout = 120000;
+server.headersTimeout = 120000;
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  require('./db').closeDb();
-  process.exit(0);
+function gracefulShutdown(signal) {
+  console.log('Received ' + signal + ', shutting down...');
+  server.close(() => {
+    require('./db').closeDb();
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(0), 5000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('exit', (code) => {
+  console.log('Process exited with code:', code);
 });
-process.on('SIGINT', () => {
-  require('./db').closeDb();
-  process.exit(0);
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.message, err.stack);
+  gracefulShutdown('uncaughtException');
 });

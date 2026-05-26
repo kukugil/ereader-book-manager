@@ -2,12 +2,44 @@ const express = require('express');
 const db = require('../db');
 const { regenerateManifest, readManifest } = require('../manifest');
 const { validateSN, asyncHandler } = require('../middleware');
-const { bookPath, coverPath } = require('../storage');
+const { bookPath, coverPath, fileExists, booksDir, sanitizeTitle } = require('../storage');
 const fsp = require('fs/promises');
+const path = require('path');
 
 const router = express.Router();
 
-// GET /api/v1/devices/:sn/books
+/**
+ * @openapi
+ * /api/v1/devices/{sn}/books:
+ *   get:
+ *     tags: [Devices]
+ *     summary: 获取设备图书列表
+ *     parameters:
+ *       - in: path
+ *         name: sn
+ *         required: true
+ *         schema: { type: string }
+ *         description: 设备序列号
+ *     responses:
+ *       200:
+ *         description: 图书列表
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sn: { type: string }
+ *                 books:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Book'
+ *       400:
+ *         description: SN 格式无效
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/devices/:sn/books',
   validateSN,
   asyncHandler(async (req, res) => {
@@ -24,14 +56,46 @@ router.get('/devices/:sn/books',
         checksum: b.checksum ? `sha256:${b.checksum}` : '',
         metadata_version: b.metadata_version,
         cover_url: `/dl/${sn}/covers/${b.book_id}.jpg`,
-        download_url: `/dl/${sn}/books/${b.book_id}`,
+        download_url: `/dl/${sn}/books/${encodeURIComponent(sanitizeTitle(b.title))}.${b.format}`,
         created_at: b.created_at,
       })),
     });
   })
 );
 
-// DELETE /api/v1/devices/:sn/books/:bookId
+/**
+ * @openapi
+ * /api/v1/devices/{sn}/books/{bookId}:
+ *   delete:
+ *     tags: [Devices]
+ *     summary: 删除图书
+ *     parameters:
+ *       - in: path
+ *         name: sn
+ *         required: true
+ *         schema: { type: string }
+ *         description: 设备序列号
+ *       - in: path
+ *         name: bookId
+ *         required: true
+ *         schema: { type: string }
+ *         description: 图书 ID
+ *     responses:
+ *       200:
+ *         description: 删除成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 deleted: { type: boolean }
+ *       404:
+ *         description: 图书不存在
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.delete('/devices/:sn/books/:bookId',
   validateSN,
   asyncHandler(async (req, res) => {
@@ -41,7 +105,11 @@ router.delete('/devices/:sn/books/:bookId',
       return res.status(404).json({ error: 'Book not found' });
     }
 
-    try { await fsp.unlink(bookPath(sn, bookId)); } catch {}
+    // Try new naming (title-based) first, fall back to old (bookId-based)
+    const newPath = await bookPath(sn, book.title, book.format);
+    const oldPath = path.join(booksDir(sn), `${bookId}.${book.format}`);
+    try { await fsp.unlink(newPath); } catch {}
+    try { if (await fileExists(oldPath)) await fsp.unlink(oldPath); } catch {}
     try { await fsp.unlink(coverPath(sn, bookId)); } catch {}
 
     db.deleteBook(bookId);
@@ -51,7 +119,46 @@ router.delete('/devices/:sn/books/:bookId',
   })
 );
 
-// PUT /api/v1/devices/:sn/books/reorder
+/**
+ * @openapi
+ * /api/v1/devices/{sn}/books/reorder:
+ *   put:
+ *     tags: [Devices]
+ *     summary: 重新排序图书
+ *     parameters:
+ *       - in: path
+ *         name: sn
+ *         required: true
+ *         schema: { type: string }
+ *         description: 设备序列号
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [book_ids]
+ *             properties:
+ *               book_ids:
+ *                 type: array
+ *                 items: { type: string }
+ *                 description: 按新顺序排列的图书 ID 列表
+ *     responses:
+ *       200:
+ *         description: 排序成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *       400:
+ *         description: book_ids 无效
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.put('/devices/:sn/books/reorder',
   validateSN,
   express.json(),
@@ -76,7 +183,32 @@ router.put('/devices/:sn/books/reorder',
   })
 );
 
-// GET /api/v1/devices/:sn/manifest (for debugging)
+/**
+ * @openapi
+ * /api/v1/devices/{sn}/manifest:
+ *   get:
+ *     tags: [Devices]
+ *     summary: 获取设备 manifest（调试用）
+ *     parameters:
+ *       - in: path
+ *         name: sn
+ *         required: true
+ *         schema: { type: string }
+ *         description: 设备序列号
+ *     responses:
+ *       200:
+ *         description: Manifest JSON
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       404:
+ *         description: Manifest 不存在
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/devices/:sn/manifest',
   validateSN,
   asyncHandler(async (req, res) => {
