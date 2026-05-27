@@ -38,8 +38,7 @@ plan-a/
 | DELETE | `/api/v1/devices/:sn/books/:bookId` | 删除书籍 |
 | PUT | `/api/v1/devices/:sn/books/reorder` | 排序 |
 | GET | `/dl/:sn/manifest.json` | 设备端书单 |
-| GET | `/dl/:sn/books/:bookId` | 下载书籍（支持 Range） |
-
+| GET | `/dl/:sn/books/:bookId.:format` | 下载书籍（支持 Range，文件保留原始扩展名 .txt/.epub/.pdf） |
 
 ## 快速启动
 

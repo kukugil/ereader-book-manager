@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   DndContext,
   closestCenter,
@@ -154,7 +154,7 @@ interface BookListTabProps {
 }
 
 export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
-  const { deviceSN, isValidSN } = useSN()
+  const { deviceSN, isValidSN, setIsConnected } = useSN()
   const [books, setBooks] = useState<Book[]>([])
   const [hasChanges, setHasChanges] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -168,27 +168,52 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
     })
   )
 
-  const loadBooks = useCallback(async () => {
-    if (!deviceSN || !isValidSN) {
+  const loadBooks = useCallback(async (sn: string, signal?: AbortSignal) => {
+    if (!sn || !isValidSN) {
       setBooks([])
       return
     }
     setLoading(true)
     setError("")
     try {
-      const data = await fetchBooks(deviceSN)
+      const data = await fetchBooks(sn, { signal })
       setBooks(data.map(mapBook))
       setHasChanges(false)
+      setIsConnected(true)
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      setIsConnected(false)
       setError(err instanceof Error ? err.message : "加载失败")
     } finally {
       setLoading(false)
     }
-  }, [deviceSN, isValidSN])
+  }, [isValidSN, setIsConnected])
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
+  const abortRef = useRef<AbortController>(null)
 
   useEffect(() => {
-    loadBooks()
-  }, [loadBooks, refreshKey])
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (abortRef.current) abortRef.current.abort()
+
+    if (!deviceSN || !isValidSN) {
+      setBooks([])
+      setIsConnected(false)
+      return
+    }
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    debounceRef.current = setTimeout(() => {
+      loadBooks(deviceSN, controller.signal)
+    }, 500)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      controller.abort()
+    }
+  }, [deviceSN, isValidSN, loadBooks, refreshKey])
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -224,7 +249,10 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadBooks()
+    if (abortRef.current) abortRef.current.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+    await loadBooks(deviceSN, controller.signal)
     setRefreshing(false)
   }
 

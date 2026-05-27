@@ -102,9 +102,14 @@ export function uploadBooks(
   })
 }
 
-export async function fetchBooks(sn: string, token?: string): Promise<BookResponse[]> {
+export async function fetchBooks(sn: string, opts?: string | { token?: string; signal?: AbortSignal }): Promise<BookResponse[]> {
+  let token: string | undefined
+  let signal: AbortSignal | undefined
+  if (typeof opts === 'string') { token = opts }
+  else if (opts) { token = opts.token; signal = opts.signal }
   const resp = await fetch(`/api/v1/devices/${encodeURIComponent(sn)}/books`, {
     headers: authHeaders(token),
+    signal,
   })
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({ error: "Unknown error" }))
