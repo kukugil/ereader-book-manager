@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useSN } from "@/hooks/sn-context"
-import { fetchBooks, deleteBook, reorderBooks, formatSize, type BookResponse } from "@/lib/api"
+import { fetchBooks, deleteBook, reorderBooks, selectBooks, formatSize, type BookResponse } from "@/lib/api"
 
 interface Book {
   id: string
@@ -28,6 +28,7 @@ interface Book {
   type: string
   size: string
   coverUrl: string
+  selected: boolean
 }
 
 function formatBadge(format: string): string {
@@ -38,7 +39,12 @@ function formatBadge(format: string): string {
   return 'bg-secondary text-muted-foreground'
 }
 
-function SortableBook({ book, onDelete }: { book: Book; onDelete: (id: string) => void }) {
+function SortableBook({ book, selected, onToggle, onDelete }: {
+  book: Book
+  selected: boolean
+  onToggle: (id: string) => void
+  onDelete: (id: string) => void
+}) {
   const {
     attributes,
     listeners,
@@ -58,12 +64,22 @@ function SortableBook({ book, onDelete }: { book: Book; onDelete: (id: string) =
       ref={setNodeRef}
       style={style}
       className={`
-        bg-card border border-border p-2.5 sm:p-4 rounded-lg
-        transition-colors hover:border-accent/50
+        bg-card border p-2.5 sm:p-4 rounded-lg transition-colors
+        ${selected ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50'}
         ${isDragging ? "opacity-50 border-accent shadow-sm" : ""}
       `}
     >
       <div className="flex items-center gap-2 sm:gap-4">
+        {/* Checkbox */}
+        <label className="flex-shrink-0 cursor-pointer p-1">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggle(book.id)}
+            className="w-4 h-4 rounded accent-accent cursor-pointer"
+          />
+        </label>
+
         {/* Drag Handle */}
         <button
           {...attributes}
@@ -145,6 +161,7 @@ function mapBook(b: BookResponse): Book {
     type: (b.format || "").toUpperCase(),
     size: formatSize(b.file_size),
     coverUrl: b.cover_url || "",
+    selected: (b as any).selected === 1,
   }
 }
 
@@ -160,6 +177,8 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState("")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [pushing, setPushing] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -177,7 +196,9 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
     setError("")
     try {
       const data = await fetchBooks(sn, { signal })
-      setBooks(data.map(mapBook))
+      const mapped = data.map(mapBook)
+      setBooks(mapped)
+      setSelectedIds(new Set(mapped.filter(b => b.selected).map(b => b.id)))
       setHasChanges(false)
       setIsConnected(true)
     } catch (err: unknown) {
@@ -256,6 +277,46 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
     setRefreshing(false)
   }
 
+  const handleToggle = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const handlePushSelected = async () => {
+    if (!deviceSN || selectedIds.size === 0) return
+    setPushing(true)
+    try {
+      await selectBooks(deviceSN, Array.from(selectedIds))
+      // Update local book state to reflect selection
+      setBooks(prev => prev.map(b => ({
+        ...b,
+        selected: selectedIds.has(b.id),
+      })))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "推送失败")
+    } finally {
+      setPushing(false)
+    }
+  }
+
+  const handleClearAllSelected = async () => {
+    if (!deviceSN) return
+    setPushing(true)
+    try {
+      await selectBooks(deviceSN, [])
+      setSelectedIds(new Set())
+      setBooks(prev => prev.map(b => ({ ...b, selected: false })))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "取消选择失败")
+    } finally {
+      setPushing(false)
+    }
+  }
+
   if (!isValidSN) {
     return (
       <div className={`text-center py-12 sm:py-16 border-2 border-dashed
@@ -293,7 +354,7 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
       )}
 
       {/* Action Buttons */}
-      <div className="flex gap-2 sm:gap-3">
+      <div className="flex gap-2 sm:gap-3 flex-wrap">
         <button
           onClick={handleRefresh}
           disabled={refreshing}
@@ -333,6 +394,29 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
           </svg>
           保存
         </button>
+        {/* Push selected */}
+        <button
+          onClick={handlePushSelected}
+          disabled={selectedIds.size === 0 || pushing}
+          className={`flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 text-sm rounded flex items-center justify-center gap-1.5 sm:gap-2 transition-colors
+            ${selectedIds.size > 0
+              ? "bg-primary text-primary-foreground hover:bg-primary/80"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
+            }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" className="text-current sm:w-4 sm:h-4">
+            <polygon points="2,2 14,8 2,14" fill="currentColor"/>
+          </svg>
+          {pushing ? '推送中...' : `推送选中${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+        </button>
+        {selectedIds.size > 0 && (
+          <button
+            onClick={handleClearAllSelected}
+            className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 text-sm rounded border border-border text-muted-foreground hover:text-foreground transition-colors"
+          >
+            取消全部
+          </button>
+        )}
       </div>
 
       {/* Books List */}
@@ -345,7 +429,13 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
           <SortableContext items={books.map(b => b.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2 sm:space-y-3">
               {books.map((book) => (
-                <SortableBook key={book.id} book={book} onDelete={handleDelete} />
+                <SortableBook
+                  key={book.id}
+                  book={book}
+                  selected={selectedIds.has(book.id)}
+                  onToggle={handleToggle}
+                  onDelete={handleDelete}
+                />
               ))}
             </div>
           </SortableContext>

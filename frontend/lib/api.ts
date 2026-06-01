@@ -11,6 +11,7 @@ export interface BookResponse {
   cover_url: string
   download_url: string
   created_at: string
+  selected?: number
 }
 
 export interface UploadResult {
@@ -139,6 +140,19 @@ export async function reorderBooks(sn: string, bookIds: string[]): Promise<void>
     const err = await resp.json().catch(() => ({ error: "Reorder failed" }))
     throw new Error(err.error)
   }
+}
+
+export async function selectBooks(sn: string, bookIds: string[]): Promise<{ ok: boolean; selected: number }> {
+  const resp = await fetch(`/api/v1/devices/${encodeURIComponent(sn)}/books/select`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ book_ids: bookIds }),
+  })
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ error: "Select failed" }))
+    throw new Error(err.error)
+  }
+  return resp.json()
 }
 
 export function formatSize(bytes: number): string {

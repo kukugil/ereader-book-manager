@@ -185,6 +185,41 @@ router.put('/devices/:sn/books/reorder',
 
 /**
  * @openapi
+ * /api/v1/devices/{sn}/books/select:
+ *   put:
+ *     tags: [Devices]
+ *     summary: 选择要推送到设备的图书
+ *     parameters:
+ *       - in: path
+ *         name: sn
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               book_ids: { type: array, items: { type: string } }
+ *     responses:
+ *       200:
+ *         description: 选择成功
+ */
+router.put('/devices/:sn/books/select',
+  validateSN,
+  express.json(),
+  asyncHandler(async (req, res) => {
+    const sn = req.validatedSN;
+    const { book_ids } = req.body || {};
+    db.selectBooks(sn, Array.isArray(book_ids) ? book_ids : []);
+    await regenerateManifest(sn);
+    res.json({ ok: true, selected: book_ids ? book_ids.length : 0 });
+  })
+);
+
+/**
+ * @openapi
  * /api/v1/devices/{sn}/manifest:
  *   get:
  *     tags: [Devices]
