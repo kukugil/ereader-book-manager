@@ -41,22 +41,13 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
             onScan(sn)
           }
         },
-        () => {
-          // QR scan attempt failed — suppress noise, only show
-          // persistent errors like camera permissions
-        }
+        () => {}
       )
-      .then(() => {
-        setStarted(true)
-      })
+      .then(() => setStarted(true))
       .catch((err: unknown) => {
-        const msg =
-          err instanceof Error ? err.message : String(err)
-        if (
-          msg.includes("NotAllowed") ||
-          msg.includes("Permission")
-        ) {
-          setError("摄像头权限被拒绝。请在浏览器设置中允许摄像头访问后刷新页面重试。")
+        const msg = err instanceof Error ? err.message : String(err)
+        if (msg.includes("NotAllowed") || msg.includes("Permission")) {
+          setError("摄像头权限被拒绝。请在浏览器设置中允许摄像头访问后刷新重试。")
         } else if (msg.includes("NotFound") || msg.includes("no camera")) {
           setError("未检测到摄像头。桌面端请手动输入 SN，移动端请使用有摄像头的设备。")
         } else {
@@ -71,19 +62,19 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
   }, [onScan])
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-card border-2 border-accent w-full max-w-sm">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-card border border-border rounded-xl w-full max-w-sm shadow-lg overflow-hidden">
         {/* Title bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b-2 border-secondary">
-          <h3 className="text-sm font-bold tracking-wider text-foreground">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <h3 className="text-sm font-semibold text-foreground">
             扫描 SN 二维码
           </h3>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center border-2 border-secondary hover:border-accent text-foreground"
+            className="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary/30 transition-colors text-muted-foreground"
             aria-label="关闭"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -93,13 +84,13 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
         {/* Scanner viewport */}
         <div className="p-4">
           {error ? (
-            <div className="px-3 py-4 bg-destructive/20 border border-destructive text-destructive text-xs text-center whitespace-pre-line">
+            <div className="px-3 py-4 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-xs text-center whitespace-pre-line">
               {error}
             </div>
           ) : (
             <div
               id="qr-reader"
-              className="w-full [&_video]:w-full [&_video]:border-2 [&_video]:border-secondary"
+              className="w-full rounded-lg overflow-hidden [&_video]:w-full"
             />
           )}
           {!error && !started && (
@@ -110,8 +101,8 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
         </div>
 
         {/* Footer hint */}
-        <div className="px-4 py-2 border-t-2 border-secondary">
-          <p className="text-[10px] text-muted-foreground text-center tracking-wider">
+        <div className="px-4 py-2 border-t border-border bg-secondary/10">
+          <p className="text-[10px] text-muted-foreground text-center">
             将 SN 二维码对准取景框 · 支持 QR Code 和条形码
           </p>
         </div>
