@@ -214,11 +214,12 @@ export function useBle() {
 
     let device: BluetoothDevice
 
-    // Primary: scan with service UUID filters (shows only relevant devices)
-    const filters = KNOWN_SERVICES.map((uuid) => ({ services: [uuid] }))
+    // 直接显示所有 BLE 设备，不用 filter
+    // filter 会匹配耳机/手表等广播标准服务 (0x180a, 0x180f) 的设备，
+    // 导致扫描"成功"但 MCU 不在列表中，永远无法发现
     try {
       device = await navigator.bluetooth.requestDevice({
-        filters,
+        acceptAllDevices: true,
         optionalServices: KNOWN_SERVICES,
       })
       return connectDevice(device)
@@ -228,43 +229,18 @@ export function useBle() {
         if (msg.includes("User cancelled") || msg.includes("cancelled")) {
           throw new Error("用户取消了蓝牙配对")
         }
-        // If no devices match the filters, fall back to showing all devices
-        if (
-          msg.includes("no devices found") ||
-          msg.includes("NotFoundError") ||
-          msg.includes("no devices")
-        ) {
-          try {
-            device = await navigator.bluetooth.requestDevice({
-              acceptAllDevices: true,
-              optionalServices: KNOWN_SERVICES,
-            })
-            return connectDevice(device)
-          } catch (fallbackErr: unknown) {
-            if (fallbackErr instanceof Error) {
-              const fbMsg = fallbackErr.message || ""
-              if (
-                fbMsg.includes("User cancelled") ||
-                fbMsg.includes("cancelled")
-              ) {
-                throw new Error("用户取消了蓝牙配对")
-              }
-            }
-            throw new Error(
-              "未发现蓝牙设备。\n\n请确认：\n" +
-                "• MCU 设备已上电且在广播范围内\n" +
-                "• Android: 已开启「位置信息」\n" +
-                "• 设备未被其他手机/电脑连接"
-            )
-          }
-        }
         if (msg.includes("Bluetooth") && msg.includes("adapter")) {
           throw new Error(
             "蓝牙适配器不可用。\n请检查设备蓝牙是否已开启"
           )
         }
       }
-      throw err
+      throw new Error(
+        "未发现蓝牙设备。\n\n请确认：\n" +
+          "• MCU 设备已上电且在广播范围内\n" +
+          "• Android: 已开启「位置信息」\n" +
+          "• 设备未被其他手机/电脑连接"
+      )
     }
   }, [connectDevice])
 
