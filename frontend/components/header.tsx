@@ -7,7 +7,7 @@ import { QrScanner } from "./qr-scanner"
 import { useTheme } from "next-themes"
 
 export function Header() {
-  const { deviceSN, setDeviceSN, isValidSN, isConnected } = useSN()
+  const { deviceSN, setDeviceSN, isValidSN, isConnected, snExists, checking } = useSN()
   const { connect, autoConnect } = useBle()
   const { theme, setTheme } = useTheme()
   const [connecting, setConnecting] = useState(false)
@@ -91,10 +91,16 @@ export function Header() {
           <div className="flex items-stretch gap-0 w-full sm:w-auto">
             <div className="flex items-center gap-2 bg-card border border-border rounded-l-lg px-2 sm:px-3 py-2 whitespace-nowrap">
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                isConnected ? 'bg-success animate-pulse' : 'bg-muted-foreground'
+                !isValidSN ? 'bg-muted-foreground'
+                : checking ? 'bg-accent animate-pulse'
+                : snExists ? 'bg-success'
+                : 'bg-muted-foreground'
               }`} />
               <span className="text-xs sm:text-sm text-muted-foreground">
-                {isConnected ? '已连接' : '未连接'}
+                {!isValidSN ? '未连接'
+                  : checking ? '查询中'
+                  : snExists ? (isConnected ? 'BLE已连' : '已连接')
+                  : '无数据'}
               </span>
             </div>
             <input

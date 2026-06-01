@@ -171,7 +171,7 @@ interface BookListTabProps {
 }
 
 export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
-  const { deviceSN, isValidSN, setIsConnected } = useSN()
+  const { deviceSN, isValidSN } = useSN()
   const [books, setBooks] = useState<Book[]>([])
   const [hasChanges, setHasChanges] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -179,6 +179,7 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
   const [error, setError] = useState("")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [pushing, setPushing] = useState(false)
+  const [successMsg, setSuccessMsg] = useState("")
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -200,15 +201,13 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
       setBooks(mapped)
       setSelectedIds(new Set(mapped.filter(b => b.selected).map(b => b.id)))
       setHasChanges(false)
-      setIsConnected(true)
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return
-      setIsConnected(false)
       setError(err instanceof Error ? err.message : "加载失败")
     } finally {
       setLoading(false)
     }
-  }, [isValidSN, setIsConnected])
+  }, [isValidSN])
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
   const abortRef = useRef<AbortController>(null)
@@ -219,7 +218,6 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
 
     if (!deviceSN || !isValidSN) {
       setBooks([])
-      setIsConnected(false)
       return
     }
 
@@ -289,13 +287,15 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
   const handlePushSelected = async () => {
     if (!deviceSN || selectedIds.size === 0) return
     setPushing(true)
+    const count = selectedIds.size
     try {
       await selectBooks(deviceSN, Array.from(selectedIds))
-      // Update local book state to reflect selection
-      setBooks(prev => prev.map(b => ({
-        ...b,
-        selected: selectedIds.has(b.id),
-      })))
+      // Update local state and clear selection
+      setBooks(prev => prev.map(b => ({ ...b, selected: selectedIds.has(b.id) })))
+      setSelectedIds(new Set())
+      setError("")
+      setSuccessMsg(`已推送 ${count} 本书，MCU 访问 /dl/${deviceSN}/queue 即可下载`)
+      setTimeout(() => setSuccessMsg(""), 5000)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "推送失败")
     } finally {
@@ -348,8 +348,13 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
       {error && (
-        <div className="px-3 sm:px-4 py-2 bg-destructive/20 border border-destructive text-destructive text-xs sm:text-sm">
+        <div className="px-3 sm:px-4 py-2 bg-destructive/10 border border-destructive/30 text-destructive text-xs sm:text-sm rounded">
           {error}
+        </div>
+      )}
+      {successMsg && (
+        <div className="px-3 sm:px-4 py-2 bg-success/10 border border-success/30 text-success text-xs sm:text-sm rounded">
+          {successMsg}
         </div>
       )}
 

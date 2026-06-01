@@ -55,6 +55,7 @@ router.get('/devices/:sn/books',
         format: b.format,
         checksum: b.checksum ? `sha256:${b.checksum}` : '',
         metadata_version: b.metadata_version,
+        selected: b.selected || 0,
         cover_url: `/dl/${sn}/covers/${b.book_id}.jpg`,
         download_url: `/dl/${sn}/books/${encodeURIComponent(sanitizeTitle(b.title))}.${b.format}`,
         created_at: b.created_at,
@@ -180,6 +181,29 @@ router.put('/devices/:sn/books/reorder',
 
     await regenerateManifest(sn);
     res.json({ ok: true });
+  })
+);
+
+/**
+ * @openapi
+ * /api/v1/devices/{sn}/status:
+ *   get:
+ *     tags: [Devices]
+ *     summary: 查询 SN 是否在数据库中存在
+ *     parameters:
+ *       - in: path
+ *         name: sn
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: SN 状态
+ */
+router.get('/devices/:sn/status',
+  validateSN,
+  asyncHandler(async (req, res) => {
+    const books = db.getBooksBySn(req.validatedSN);
+    res.json({ exists: books.length > 0, book_count: books.length });
   })
 );
 
