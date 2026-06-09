@@ -228,3 +228,85 @@
 [data-sonner-toast]:hover {
   transform: none !important;
 }
+
+/* =========================================
+   Minimal pixel-art toast — success variant
+   ========================================= */
+.pixel-toast {
+  position: relative;
+  overflow: hidden;
+  min-height: 44px;
+  max-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* 3px left green strip */
+  border-left: 3px solid var(--success) !important;
+  animation: pixel-toast-in 0.3s ease-out both;
+}
+
+.pixel-toast::before {
+  content: none;
+}
+
+.pixel-toast-title {
+  font-family: var(--font-vt323);
+  font-size: 1rem;
+  color: var(--foreground);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pixel-toast-close {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.pixel-toast-close:hover {
+  opacity: 1;
+}
+
+@keyframes pixel-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pixel-toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+[data-sonner-toast][data-state="closed"] {
+  animation: pixel-toast-out 0.2s ease-in both !important;
+}

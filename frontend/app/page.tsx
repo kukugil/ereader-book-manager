@@ -32,31 +32,28 @@ function HomeContent() {
           classNames: {
             toast: 'pixel-toast',
             title: 'pixel-toast-title',
-            description: 'pixel-toast-desc',
-            actionButton: 'pixel-toast-action',
-            cancelButton: 'pixel-toast-cancel',
             closeButton: 'pixel-toast-close',
           },
           style: {
             background: 'var(--card)',
             color: 'var(--foreground)',
-            border: '2px solid var(--accent)',
+            border: '1px solid var(--border)',
             borderRadius: 0,
             fontFamily: 'var(--font-vt323)',
-            fontSize: '1.1rem',
+            fontSize: '1rem',
             letterSpacing: '0.05em',
-            padding: '10px 16px',
-            boxShadow: '4px 4px 0px var(--accent)',
+            padding: '0 36px 0 16px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             maxWidth: '90vw',
           },
-          duration: 2000,
+          duration: 2500,
         }}
       />
     <main className="min-h-screen bg-background">
       <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-8 scanlines">
         <Header onHelpClick={() => setShowGuide(true)} />
 
-        {/* Tab Navigation — 移动端更大触摸目标 */}
+        {/* Tab Navigation */}
         <div className="flex gap-0 mb-4 sm:mb-8 border-b-2 border-border">
           <button
             onClick={() => setActiveTab("upload")}
