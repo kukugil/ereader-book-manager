@@ -289,7 +289,16 @@ export function BookListTab({ refreshKey, onGoUpload }: BookListTabProps) {
       setSelectedIds(new Set())
       setError("")
       setSuccessMsg("")
-      toast.success(t("pushSuccess", count), { duration: 5000 })
+      toast(
+        <span className="flex items-center gap-2">
+          <span style={{ color: 'var(--success)', fontWeight: 500 }}>✓</span>
+          <span>{t("pushSuccess", count)}</span>
+        </span>,
+        {
+          duration: 5000,
+          className: 'push-success-toast',
+        }
+      )
       setTimeout(() => setSuccessMsg(""), 5000)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("pushFailed"))

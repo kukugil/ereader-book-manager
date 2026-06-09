@@ -230,7 +230,7 @@
 }
 
 /* =========================================
-   Minimal pixel-art toast — success variant
+   Minimal pixel-art toast — base variant
    ========================================= */
 .pixel-toast {
   position: relative;
@@ -309,4 +309,49 @@
 
 [data-sonner-toast][data-state="closed"] {
   animation: pixel-toast-out 0.2s ease-in both !important;
+}
+
+/* =========================================
+   Minimal pixel-art toast — push-success variant
+   ========================================= */
+.push-success-toast {
+  border-left: 3px solid var(--primary) !important;
+  animation: push-toast-in 0.25s ease-out both;
+}
+
+.push-success-toast .pixel-toast-title {
+  letter-spacing: 0.04em;
+  font-family: var(--font-vt323);
+  font-size: 1rem;
+  color: var(--foreground);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes push-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes push-toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+[data-sonner-toast].push-success-toast[data-state="closed"] {
+  animation: push-toast-out 0.2s ease-in both !important;
 }
