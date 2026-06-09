@@ -1,7 +1,7 @@
 const app = require('./app');
 const CONFIG = require('./config');
 
-const port = parseInt(process.env.PORT, 10) || 3001;
+const port = parseInt(process.env.PORT, 10) || 8080;
 const server = app.listen(port, '0.0.0.0', () => {
   console.log('E-Reader server running on http://0.0.0.0:' + port);
   console.log('Storage:', CONFIG.DL_DIR);
